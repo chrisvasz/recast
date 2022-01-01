@@ -2341,4 +2341,30 @@ describe("printer", function () {
       "}",
     ].join(eol));
   });
+
+  it("doesn't double-print flow colons", () => {
+    const babelParser = require("@babel/parser");
+    const parseOptions = {
+      parser: {
+        parse: (source: string) =>
+          babelParser.parse(source, {
+            sourceType: "module",
+            plugins: ["flow"],
+          }),
+      },
+    };
+
+    function check(code: string) {
+      const ast = recast.parse(code, parseOptions);
+      const printer = new Printer({
+        tabWidth: 2,
+        wrapColumn: 80,
+      });
+      const pretty = printer.printGenerically(ast).code;
+      assert.strictEqual(pretty, code);
+    }
+
+    check('type Props = { onChange: string => mixed };');
+    check('declare function fn(a: (b: B) => void): string => void;');
+  })
 });

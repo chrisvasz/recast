@@ -1576,9 +1576,10 @@ function genericPrintNoParens(path: any, options: any, print: any) {
 
     // Type Annotations for Facebook Flow, typically stripped out or
     // transformed away before printing.
-    case "TypeAnnotation":
+    case "TypeAnnotation": {
+      const grandparent = path.getParentNode(1)
       if (n.typeAnnotation) {
-        if (n.typeAnnotation.type !== "FunctionTypeAnnotation") {
+        if (!namedTypes.DeclareFunction.check(grandparent)) {
           parts.push(": ");
         }
         parts.push(path.call(print, "typeAnnotation"));
@@ -1586,6 +1587,7 @@ function genericPrintNoParens(path: any, options: any, print: any) {
       }
 
       return fromString("");
+    }
 
     case "ExistentialTypeParam":
     case "ExistsTypeAnnotation":
@@ -1759,22 +1761,13 @@ function genericPrintNoParens(path: any, options: any, print: any) {
     case "FunctionTypeAnnotation": {
       // FunctionTypeAnnotation is ambiguous:
       // declare function(a: B): void; OR
-      // const A: (a: B) => void;
+      // const A: (a: B) => void; OR
       const parent = path.getParentNode(0);
       const isArrowFunctionTypeAnnotation = !(
         namedTypes.ObjectTypeCallProperty.check(parent) ||
         (namedTypes.ObjectTypeInternalSlot.check(parent) && parent.method) ||
         namedTypes.DeclareFunction.check(path.getParentNode(2))
       );
-
-      const needsColon =
-        isArrowFunctionTypeAnnotation &&
-        !namedTypes.FunctionTypeParam.check(parent) &&
-        !namedTypes.TypeAlias.check(parent);
-
-      if (needsColon) {
-        parts.push(": ");
-      }
 
       const hasTypeParameters = !!n.typeParameters;
       const needsParens =
@@ -1906,7 +1899,7 @@ function genericPrintNoParens(path: any, options: any, print: any) {
         path.call(print, "id"),
         "]]",
         n.optional ? "?" : "",
-        n.value.type !== "FunctionTypeAnnotation" ? ": " : "",
+        ": ",
         path.call(print, "value"),
       ]);
 
